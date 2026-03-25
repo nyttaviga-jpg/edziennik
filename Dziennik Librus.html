@@ -2761,6 +2761,10 @@
                 </select>
                 <small style="color:#555;">Przytrzymaj CTRL (lub CMD na Macu), aby zaznaczyć wielu koordynatorów.</small>
             </label>
+            <div style="margin-bottom: 10px;">
+    <span style="display:block; font-weight:bold; margin-bottom:5px;">Opis / Instrukcja dla ucznia (opcjonalnie):</span>
+    <div id="app-cat-description-container"></div>
+</div>
             <label style="display:block; margin-bottom:15px; font-weight:bold;">
                 <input type="checkbox" id="app-cat-active" checked style="transform:scale(1.2); margin-right:5px;"> Kategoria aktywna (możliwa do wybrania)
             </label>
@@ -8536,36 +8540,36 @@ function renderApplicationsView() {
 // --- FORMULARZ SKŁADANIA WNIOSKU ---
 function showApplicationForm() {
     const div = document.getElementById("stu-applications-section");
-    
     let optionsHTML = '<option value="">-- Wybierz rodzaj wniosku --</option>';
-const cats = getAppCategoriesDB().filter(c => c.isActive !== false);
-cats.forEach(c => {
-    optionsHTML += `<option value="${c.id}">[${c.id}] ${c.name}</option>`;
-});
+    const cats = getAppCategoriesDB().filter(c => c.isActive !== false);
+    cats.forEach(c => {
+        optionsHTML += `<option value="${c.id}">[${c.id}] ${c.name}</option>`;
+    });
 
     div.innerHTML = `
-      <div class="mail-compose-wrap" style="max-width: 900px; padding: 30px; margin-top:0;">
+    <div class="mail-compose-wrap" style="max-width: 900px; padding: 30px; margin-top:0;">
         <div class="section-title" style="margin-top:0; margin-bottom:20px;">Nowy wniosek</div>
-        
         <form id="application-form" onsubmit="event.preventDefault(); prepareApplicationPreview()">
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 
                 <label>Rodzaj wniosku:
-                    <select id="app-type" required onchange="updateAppAdresat()" style="padding:10px; font-size:15px; width:100%; border:1px solid #ccc; border-radius:4px;">
+                    <select id="app-type" required onchange="updateAppTypeInfo()" style="padding:10px; font-size:15px; width:100%; border:1px solid #ccc; border-radius:4px;">
                         ${optionsHTML}
                     </select>
                 </label>
-
+                
+                <div id="app-type-description" style="display:none; padding:15px; background:#fff3cd; border:1px solid #ffe69c; border-radius:4px; font-size:14px; color:#664d03;"></div>
+                
                 <label>Adresat:
-                    <input type="text" id="app-adresat" value="Dyrektor Szkoły" disabled style="background:#e9ecef; color:#555; cursor:not-allowed; border:1px solid #ccc;">
+                    <input type="text" id="app-adresat" value="Dyrektor Szkoły" disabled style="background:#e9ecef; color:#555; cursor:not-allowed; border:1px solid #ccc; width:100%; padding:10px; font-size:15px; border-radius:4px; box-sizing:border-box;">
                 </label>
-
+                
                 <label>Treść wniosku:
-                    <textarea id="app-content" required placeholder="Proszę o..." style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; resize: vertical;"></textarea>
+                    <textarea id="app-content" required placeholder="Proszę o..." style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; resize: vertical; width:100%; box-sizing:border-box;"></textarea>
                 </label>
-
+                
                 <label>Uzasadnienie:
-                    <textarea id="app-reason" required placeholder="Uzasadniając swoją prośbę, wyjaśniam że..." style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; resize: vertical;"></textarea>
+                    <textarea id="app-reason" required placeholder="Uzasadniając swoją prośbę, wyjaśniam że..." style="min-height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; resize: vertical; width:100%; box-sizing:border-box;"></textarea>
                 </label>
                 
                 <label style="background:#eef; padding:10px; border:1px solid #ccf; border-radius:4px; display:block; margin-top:5px; cursor:pointer;">
@@ -8580,13 +8584,31 @@ cats.forEach(c => {
                 </div>
             </div>
         </form>
-      </div>
+    </div>
     `;
 }
 
-function updateAppAdresat() {
-    // Adresat jest stały, ale funkcja jest gotowa na przyszłe zmiany
-    document.getElementById("app-adresat").value = "Dyrektor Szkoły"; 
+function updateAppTypeInfo() {
+    updateAppAdresat(); // Wywołanie dotychczasowej logiki adresata
+    
+    const typeId = document.getElementById("app-type").value;
+    const descDiv = document.getElementById("app-type-description");
+    
+    if (typeId) {
+        const cats = getAppCategoriesDB();
+        const cat = cats.find(c => c.id === typeId);
+        
+        if (cat && cat.description && cat.description.trim() !== "") {
+            descDiv.innerHTML = `<strong>Wskazówka do wniosku:</strong><br>` + cat.description;
+            descDiv.style.display = "block";
+        } else {
+            descDiv.style.display = "none";
+            descDiv.innerHTML = "";
+        }
+    } else {
+        descDiv.style.display = "none";
+        descDiv.innerHTML = "";
+    }
 }
 
 // --- PRZYGOTOWANIE PODGLĄDU DOKUMENTU ---
@@ -11014,9 +11036,14 @@ function renderAppCategoriesManagement() {
 function openAppCategoryModal(id = null) {
     const modal = document.getElementById("app-category-modal");
     const db = getAppCategoriesDB();
-    
-    // Wypełnij select koordynatorów wszystkimi pracownikami
     const coordsSelect = document.getElementById("app-cat-coords");
+    
+    // Generowanie edytora WYSIWYG
+    const descContainer = document.getElementById("app-cat-description-container");
+    if(descContainer && descContainer.innerHTML.trim() === '') {
+        descContainer.innerHTML = createWysiwygHTML('app-cat-description', '100px', 'Wpisz dodatkowe instrukcje dla ucznia...');
+    }
+
     const usersDB = JSON.parse(localStorage.getItem("usersDB") || "[]");
     const employees = usersDB.filter(u => !u.roles.includes('student')).sort((a,b) => a.name.localeCompare(b.name));
     coordsSelect.innerHTML = employees.map(e => `<option value="${e.name}">${e.name}</option>`).join('');
@@ -11027,10 +11054,15 @@ function openAppCategoryModal(id = null) {
             document.getElementById("app-cat-modal-title").textContent = "Edytuj kategorię wniosku";
             document.getElementById("app-cat-id").value = cat.id;
             document.getElementById("app-cat-code").value = cat.id;
-            document.getElementById("app-cat-code").disabled = true; // Nie zmieniamy kodu
+            document.getElementById("app-cat-code").disabled = true; 
             document.getElementById("app-cat-name").value = cat.name;
             document.getElementById("app-cat-active").checked = cat.isActive !== false;
             
+            // Wczytanie opisu do edytora
+            if(document.getElementById("app-cat-description")) {
+                document.getElementById("app-cat-description").innerHTML = cat.description || '';
+            }
+
             Array.from(coordsSelect.options).forEach(opt => {
                 opt.selected = cat.coordinators && cat.coordinators.includes(opt.value);
             });
@@ -11042,6 +11074,12 @@ function openAppCategoryModal(id = null) {
         document.getElementById("app-cat-code").disabled = false;
         document.getElementById("app-cat-name").value = "";
         document.getElementById("app-cat-active").checked = true;
+        
+        // Czyszczenie edytora
+        if(document.getElementById("app-cat-description")) {
+            document.getElementById("app-cat-description").innerHTML = '';
+        }
+        
         Array.from(coordsSelect.options).forEach(opt => opt.selected = false);
     }
     modal.style.display = "flex";
@@ -11057,22 +11095,25 @@ function saveAppCategory() {
     const code = document.getElementById("app-cat-code").value.trim().toUpperCase();
     const name = document.getElementById("app-cat-name").value.trim();
     const isActive = document.getElementById("app-cat-active").checked;
-    
     const coordsSelect = document.getElementById("app-cat-coords");
     const coordinators = Array.from(coordsSelect.selectedOptions).map(opt => opt.value);
+    
+    // Pobranie wartości opisu z edytora
+    const description = document.getElementById("app-cat-description") ? document.getElementById("app-cat-description").innerHTML : '';
 
     if(!code || !name) return alert("Podaj kod i nazwę kategorii!");
-
+    
     if (idField) {
         const idx = db.findIndex(c => c.id === idField);
         if(idx !== -1) {
             db[idx].name = name;
             db[idx].coordinators = coordinators;
             db[idx].isActive = isActive;
+            db[idx].description = description; // Aktualizacja opisu
         }
     } else {
         if (db.some(c => c.id === code)) return alert("Taki kod kategorii już istnieje!");
-        db.push({ id: code, name: name, coordinators: coordinators, isActive: isActive });
+        db.push({ id: code, name: name, coordinators: coordinators, isActive: isActive, description: description }); // Dodanie opisu
     }
     
     localStorage.setItem("appCategoriesDB", JSON.stringify(db));
