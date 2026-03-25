@@ -8558,7 +8558,7 @@ function showApplicationForm() {
                     </select>
                 </label>
                 
-                <div id="app-type-description" style="display:none; padding:15px; background:#fff3cd; border:1px solid #ffe69c; border-radius:4px; font-size:14px; color:#664d03;"></div>
+                <div id="app-type-description" style="display:none; padding:15px; background:#f0f2f5; border:1px solid #d1d5db; border-radius:4px; font-size:14px; color:#374151; margin-top: -5px;"></div>
                 
                 <label>Adresat:
                     <input type="text" id="app-adresat" value="Dyrektor Szkoły" disabled style="background:#e9ecef; color:#555; cursor:not-allowed; border:1px solid #ccc; width:100%; padding:10px; font-size:15px; border-radius:4px; box-sizing:border-box;">
@@ -8589,8 +8589,12 @@ function showApplicationForm() {
 }
 
 function updateAppTypeInfo() {
-    updateAppAdresat(); // Wywołanie dotychczasowej logiki adresata
+    // 1. Zaktualizowanie adresata (jeśli w systemie jest taka logika)
+    if (typeof updateAppAdresat === 'function') {
+        updateAppAdresat();
+    }
     
+    // 2. Pobranie kontenera i ID wybranej kategorii
     const typeId = document.getElementById("app-type").value;
     const descDiv = document.getElementById("app-type-description");
     
@@ -8598,17 +8602,21 @@ function updateAppTypeInfo() {
         const cats = getAppCategoriesDB();
         const cat = cats.find(c => c.id === typeId);
         
-        if (cat && cat.description && cat.description.trim() !== "") {
-            descDiv.innerHTML = `<strong>Wskazówka do wniosku:</strong><br>` + cat.description;
-            descDiv.style.display = "block";
-        } else {
-            descDiv.style.display = "none";
-            descDiv.innerHTML = "";
+        // 3. Sprawdzenie czy kategoria ma dodany opis
+        if (cat && cat.description) {
+            let cleanDesc = cat.description.trim();
+            // Oczyszczanie ze "śmieci" dodawanych przez pusty edytor WYSIWYG
+            if (cleanDesc !== "" && cleanDesc !== "<br>" && cleanDesc !== "<p><br></p>" && cleanDesc !== "<p></p>") {
+                descDiv.innerHTML = `<strong>Informacje o wniosku</strong><br>` + cleanDesc;
+                descDiv.style.display = "block";
+                return; // Znaleziono opis, pokazujemy i kończymy działanie
+            }
         }
-    } else {
-        descDiv.style.display = "none";
-        descDiv.innerHTML = "";
     }
+    
+    // Jeśli nie wybrano wniosku, lub wniosek nie ma opisu – ukrywamy box
+    descDiv.style.display = "none";
+    descDiv.innerHTML = "";
 }
 
 // --- PRZYGOTOWANIE PODGLĄDU DOKUMENTU ---
