@@ -11360,8 +11360,8 @@ function renderSubjectsManagement() {
             <td>${s.code}</td>
             <td>${s.curriculumId || "---"}</td>
             <td style="text-align:right;">
-                
                 <button class="cert-action-btn" onclick="openSubjectModal('${s.name}')">Edytuj</button>
+                <button class="cert-action-btn" style="color:#c33; border-color:#c33; margin-left:5px;" onclick="deleteSubject('${s.name}')">Usuń</button>
             </td>
         </tr>`;
     });
@@ -11530,16 +11530,18 @@ function deleteProtocol(name) {
         renderProtocolsList();
     }
 }
-function deleteSubject(code) {
-    if (!confirm(`Czy na pewno chcesz usunąć ten przedmiot?`)) return;
+function deleteSubject(name) {
+    if(!confirm(`Czy na pewno usunąć przedmiot: ${name}?`)) return;
     
     let db = getSubjectsDB();
-    db = db.filter(s => s.code !== code);
+    db = db.filter(s => s.name !== name);
     localStorage.setItem("subjectsDB", JSON.stringify(db));
     
-    // Zaktualizuj globalną tablicę `subjects`, używaną w innych miejscach formularzy
-    subjects = db.map(s => s.name); 
+    // Zaktualizuj globalną tablicę subjects w locie, aby inne sekcje (np. edycja profilu nauczyciela) miały aktualne dane
+    subjects.length = 0; 
+    db.forEach(s => subjects.push(s.name)); 
     
+    // Odśwież widok tabeli
     renderSubjectsManagement();
 }
 </script>
