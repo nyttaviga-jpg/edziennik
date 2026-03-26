@@ -1929,7 +1929,7 @@
     <div id="emp-secretariat-section" class="section" style="display:none;">
       <div class="retro-window">
           <div class="retro-titlebar">
-              <span>🗄️ System Zarządzania Placówką Oświatową - MS DOS / Win32 (Tryb Administratora)</span>
+              <span>🗄️ System Zarządzania Placówką Oświatową - SZPO ADM 2.4</span>
               <button onclick="exitRetroMode()" class="retro-titlebar-btn">X</button>
           </div>
           <div class="retro-menubar" id="sec-menubar">
@@ -4527,11 +4527,6 @@ function renderMailbox(role, box="inbox") {
           const rowClass = isUnread ? 'unread-row' : '';
           let senderDisplay = box === 'inbox' ? m.sender : `Do: ${m.recipients.length} osób`;
 
-// Dodanie plakietki ADM dla odebranych wiadomości systemowych
-if (box === 'inbox' && m.isSystemMessage) {
-    senderDisplay += ` <span class="adm-badge" title="Wiadomość została wysłana przez system ADM">ADM</span>`;
-}
-
           const deleteBtn = box === 'inbox' 
               ? `<button onclick="event.stopPropagation(); deleteMail('${m.id}', '${role}')" style="background:none; border:none; color:#c33; cursor:pointer; font-size:18px; font-weight:bold; padding:0 5px; line-height:1;" title="Usuń">×</button>` 
               : '';
@@ -4616,6 +4611,21 @@ function openMail(id, role, box) {
       ? `<div style="margin-top:5px; font-size:12px; color:#0583e1;">⤴ Odpowiedź na: ${msg.replyToSubject || "wiadomość"}</div>` 
       : '';
 
+  // --- DODANY FRAGMENT DLA PLAKIETKI ADM ---
+  let senderNameHtml = `<strong>${msg.sender}</strong>`;
+  if (msg.isSystemMessage) {
+      senderNameHtml += ` <span class="adm-badge" title="Wiadomość została wysłana przez system ADM">ADM</span>`;
+  }
+  // --- KONIEC DODANEGO FRAGMENTU ---
+let formattedBody = msg.body.replace(/\n/g, '<br>');
+  const quoteIndex = formattedBody.indexOf("--- W dniu ");
+  
+  if (quoteIndex !== -1) {
+      formattedBody = formattedBody.substring(0, quoteIndex) + 
+      '<div style="color: #888; border-left: 3px solid #d1d5db; padding-left: 14px; margin-top: 20px; font-size: 14px; background: #fdfdfd; padding-top: 5px; padding-bottom: 5px;">' + 
+      formattedBody.substring(quoteIndex) + 
+      '</div>';
+  }
   mailDiv.innerHTML = `
     <div class="modern-mail-container" style="min-height: 500px; display: flex; flex-direction: column;">
         
@@ -4632,9 +4642,9 @@ function openMail(id, role, box) {
                 <h2 style="margin: 0 0 15px 0; color: #333; font-size: 22px;">${msg.subject}</h2>
                 
                 <div class="meta-row">
-                    <span class="meta-label">Nadawca:</span> 
-                    <strong>${msg.sender}</strong>
-                </div>
+    <span class="meta-label">Nadawca:</span> 
+    ${senderNameHtml}
+</div>
                 <div class="meta-row">
                     <span class="meta-label">Data:</span> 
                     <span>${msg.date}</span>
@@ -4644,8 +4654,8 @@ function openMail(id, role, box) {
             </div>
 
             <div class="mail-read-body">
-                ${msg.body.replace(/\n/g,'<br>')}
-            </div>
+    ${formattedBody}
+</div>
         </div>
 
     </div>
