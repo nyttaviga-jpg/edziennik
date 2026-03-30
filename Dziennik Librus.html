@@ -6964,16 +6964,6 @@ function hideSysMsgForm() {
     document.getElementById('sysmsgs-form-view').style.display = 'none';
 }
 
-function toggleSysMsgGroup(group, isChecked) {
-    const checkboxes = document.querySelectorAll('.sysmsg-rec-chk');
-    checkboxes.forEach(chk => {
-        const isStudent = chk.getAttribute('data-is-student') === 'true';
-        if (group === 'all') chk.checked = isChecked;
-        else if (group === 'teachers' && !isStudent) chk.checked = isChecked;
-        else if (group === 'students' && isStudent) chk.checked = isChecked;
-    });
-}
-
 function sendSystemMessage() {
     // 1. Zabezpieczenie: znajdujemy tylko ten formularz, który faktycznie wyświetla się na ekranie
     const forms = Array.from(document.querySelectorAll('#sysmsgs-form-view'));
