@@ -2141,9 +2141,25 @@
                           </table>
                       </div>
 
-                      <div id="protocol-grades-panel" style="display:none; padding: 20px; text-align: center; color: #555;">
-                          (Sekcja w przygotowaniu - podgląd zamkniętych arkuszy ocen)
-                      </div>
+                     <div id="protocol-grades-panel" style="display:none; padding: 15px; font-family: 'Tahoma', sans-serif;">
+    
+    <div style="margin-bottom: 15px; background: #d4d0c8; padding: 10px; border-top: 2px solid #fff; border-left: 2px solid #fff; border-bottom: 2px solid #404040; border-right: 2px solid #404040; color: #000;">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px;">
+            <label>Protokół: <select id="adm-grade-protocol" onchange="renderAdmGradeTable()" style="width:200px;"></select></label>
+            <label>Klasa: <select id="adm-grade-class" onchange="renderAdmGradeTable()" style="width:100px;"></select></label>
+            <label>Przedmiot: <select id="adm-grade-subject" onchange="renderAdmGradeTable()" style="width:200px;"></select></label>
+        </div>
+        <div style="border-top: 1px solid #808080; padding-top: 10px; margin-top: 5px;">
+            <button onclick="openAdmBulkAddModal()" style="font-weight: bold;">+ Dodaj oceny seryjnie</button>
+            <button id="adm-btn-edit-selected" onclick="openAdmBulkEditModal()" disabled>Edytuj zaznaczone (0)</button>
+        </div>
+    </div>
+    
+    <div id="adm-grade-table-container" style="background: #fff; overflow-y: auto; max-height: 50vh; border-top: 2px solid #404040; border-left: 2px solid #404040; border-bottom: 2px solid #fff; border-right: 2px solid #fff; padding: 2px;">
+        <p style="text-align:center; padding: 20px; color:#000;">Wybierz protokół, klasę i przedmiot z menu powyżej.</p>
+    </div>
+
+</div>
 
                       <div id="protocol-freq-panel" style="display:none; padding: 20px; text-align: center; color: #555;">
                           (Sekcja w przygotowaniu - podgląd zbiorczej frekwencji)
@@ -2276,6 +2292,50 @@
     </div>
     <div id="stu-mail-section" class="section" style="display:none"></div>
   </div>
+  <div id="adm-bulk-grade-modal" class="modal-overlay" style="display: none; z-index: 10000;">
+  <div class="modal-content" style="width: 95%; max-width: 1200px; padding: 10px; font-family: 'Tahoma', sans-serif;">
+      <span class="modal-close-btn" onclick="closeAdmBulkGradeModal()">&times;</span>
+      <h2 id="adm-bulk-grade-title" style="margin-top:0; border-bottom: 1px solid #808080; padding-bottom: 5px;">Seryjna operacja na ocenach</h2>
+      
+      <form id="adm-bulk-grade-form" onsubmit="event.preventDefault(); saveAdmBulkGrades();">
+          <input type="hidden" id="adm-bulk-mode" value="add">
+          
+          <div style="background: #d4d0c8; border-top: 2px solid #fff; border-left: 2px solid #fff; border-bottom: 2px solid #404040; border-right: 2px solid #404040; padding: 8px; margin-bottom: 10px; font-size: 12px; display:flex; gap:10px; align-items: center; flex-wrap: wrap;">
+              <span style="font-weight:bold;">Zastosuj do wszystkich poniżej:</span>
+              <select id="adm-global-category" style="width:120px;"></select>
+              <input type="number" id="adm-global-weight" min="0.01" step="0.01" placeholder="Waga" style="width:50px;">
+              <label><input type="checkbox" id="adm-global-avg" checked> Licz do śr.</label>
+              <input type="date" id="adm-global-date">
+              <input type="text" id="adm-global-teacher" placeholder="Nauczyciel" style="width:100px;">
+              <button type="button" onclick="applyGlobalSettingsToRows()">Wypełnij kolumny</button>
+          </div>
+          
+          <div style="max-height: 50vh; overflow-y: auto; background:#fff; border-top: 2px solid #404040; border-left: 2px solid #404040; border-bottom: 2px solid #fff; border-right: 2px solid #fff; padding: 2px;">
+              <table class="cert-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                  <thead style="background: #d4d0c8;">
+                      <tr>
+                          <th style="width: 30px; border: 1px solid #808080;">Lp.</th>
+                          <th style="text-align:left; border: 1px solid #808080; width: 150px;">Uczeń</th>
+                          <th style="border: 1px solid #808080; width: 60px;">Ocena</th>
+                          <th style="border: 1px solid #808080; width: 120px;">Kategoria</th>
+                          <th style="border: 1px solid #808080; width: 50px;">Waga</th>
+                          <th style="border: 1px solid #808080; width: 50px;">L. do śr.</th>
+                          <th style="border: 1px solid #808080; width: 110px;">Data</th>
+                          <th style="border: 1px solid #808080; width: 100px;">Nauczyciel</th>
+                          <th style="border: 1px solid #808080;">Komentarz</th>
+                      </tr>
+                  </thead>
+                  <tbody id="adm-bulk-grade-rows"></tbody>
+              </table>
+          </div>
+          
+          <div style="text-align: right; margin-top: 15px;">
+              <button type="button" onclick="closeAdmBulkGradeModal()" style="margin-right:10px;">Anuluj</button>
+              <button type="submit" style="font-weight: bold;">Zapisz zmiany w bazie</button>
+          </div>
+      </form>
+  </div>
+</div>
 <div id="protocol-settings-modal" class="modal-overlay" style="display: none; z-index: 10005;">
   <div class="modal-content" style="width: 800px; max-width: 95%;">
       <span class="modal-close-btn" onclick="closeProtocolSettingsModal()">&times;</span>
@@ -2308,7 +2368,7 @@
     <div class="modal-content">
         <span class="modal-close-btn" onclick="closeGradeModal()">&times;</span>
         <h2 id="modal-title">Dodaj ocenę</h2>
-        <form id="modal-grade-form">
+        <form id="modal-grade-form" onsubmit="event.preventDefault(); saveGradeFromModal();">
             <input type="hidden" id="modal-student-index">
             <input type="hidden" id="modal-grade-id">
             <label>Ocena: <input type="text" id="modal-grade-value" required maxlength="3"></label>
@@ -2330,6 +2390,7 @@
         <h2 id="substitution-modal-title">Dodaj zastępstwo</h2>
         <form id="substitution-form">
             <input type="hidden" id="sub-date">
+            
             <input type="hidden" id="sub-lesson-num">
             <label>Nauczyciel:
                 <select id="sub-teacher" class="modal-input"></select>
@@ -2346,7 +2407,7 @@
     <div class="modal-content">
         <span class="modal-close-btn" onclick="closeEventModal()">&times;</span>
         <h2 id="event-modal-title">Dodaj wydarzenie</h2>
-        <form id="event-form">
+        <form id="event-form" onsubmit="event.preventDefault(); saveCalendarEvent();">
             <input type="hidden" id="event-id">
             <input type="hidden" id="event-date">
             <label>Kategoria: <select id="event-category" required></select></label>
@@ -2363,7 +2424,7 @@
   <div class="modal-content">
       <span class="modal-close-btn" onclick="closeAttendanceModal()">&times;</span>
       <h2 id="attendance-modal-title">Edytuj frekwencję</h2>
-      <form id="attendance-modal-form">
+      <form id="attendance-modal-form" onsubmit="event.preventDefault(); saveAttendanceFromModal();">
           <input type="hidden" id="att-modal-student-index">
           <input type="hidden" id="att-modal-date">
           <input type="hidden" id="att-modal-lesson-num">
@@ -11592,6 +11653,335 @@ function deleteSubject(name) {
     
     // Odśwież widok tabeli
     renderSubjectsManagement();
+}
+// --- LOGIKA PROTOKOŁÓW OCEN W ADMINISTRACJI (RETRO) ---
+let admSelectedGrades = [];
+
+// Bezpieczne podpięcie pod zakładki (uruchamiane dopiero po załadowaniu całej strony)
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof openProtocolTab === 'function') {
+        const originalOpenProtocolTab = openProtocolTab;
+        window.openProtocolTab = function(tabName) {
+            originalOpenProtocolTab(tabName);
+            if(tabName === 'grades') {
+                initAdmGradesTab();
+                renderAdmGradeTable();
+            }
+        };
+    }
+});
+
+function initAdmGradesTab() {
+    const protEl = document.getElementById('adm-grade-protocol');
+    if(protEl && typeof getProtocolOptionsHTML === 'function') {
+        protEl.innerHTML = getProtocolOptionsHTML();
+        protEl.value = getCurrentProtocol();
+    }
+    
+    const classes = JSON.parse(localStorage.getItem("classesDB") || "[]");
+    document.getElementById('adm-grade-class').innerHTML = '<option value="">-- Klasa --</option>' + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    
+    let allSubjects = new Set(typeof subjects !== 'undefined' ? subjects.slice() : []);
+    JSON.parse(localStorage.getItem("gradesDB") || "[]").forEach(entry => {
+        if(entry.info && entry.info.subject) allSubjects.add(entry.info.subject);
+    });
+    document.getElementById('adm-grade-subject').innerHTML = '<option value="">-- Przedmiot --</option>' + Array.from(allSubjects).sort().map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+// Funkcja pomocnicza do liczenia średniej (z plusem i minusem)
+function parseGradeValueForAvg(gradeStr) {
+    if (!gradeStr) return null;
+    let base = parseFloat(gradeStr[0]);
+    if (isNaN(base)) return null;
+    if (gradeStr.includes('+')) return base + 0.5; // lub 0.25/0.33 w zależności od waszego statutu
+    if (gradeStr.includes('-')) return base - 0.25; 
+    return base;
+}
+
+function renderAdmGradeTable() {
+    const container = document.getElementById('adm-grade-table-container');
+    const prot = document.getElementById('adm-grade-protocol').value;
+    const cls = document.getElementById('adm-grade-class').value;
+    const subj = document.getElementById('adm-grade-subject').value;
+    
+    admSelectedGrades = [];
+    updateAdmEditButton();
+    
+    if(!prot || !cls || !subj) {
+        container.innerHTML = "<p style='text-align:center; padding: 20px; color:#000;'>Wybierz parametry (Protokół, Klasę, Przedmiot), aby wczytać dane.</p>";
+        return;
+    }
+    
+    const gradesDB = JSON.parse(localStorage.getItem("gradesDB") || "[]");
+    const predictedDB = JSON.parse(localStorage.getItem("predictedGradesDB") || "[]");
+    const finalDB = JSON.parse(localStorage.getItem("finalGradesDB") || "[]");
+    
+    const subjectGrades = gradesDB.filter(entry => {
+        let entryProt = entry.info.protocol || entry.protocol || "Semestr zimowy 2025/2026";
+        return entry.info.subject === subj && entryProt.trim() === prot.trim();
+    });
+    
+    const classStudents = typeof getStudentsByClass === 'function' ? getStudentsByClass(cls) : [];
+    if(classStudents.length === 0) {
+        container.innerHTML = "<p style='text-align:center; padding: 20px; color:#000;'>Brak uczniów w wybranej klasie.</p>";
+        return;
+    }
+    
+    let html = `<table class="cert-table" style="width: 100%; border-collapse: collapse; font-family: 'Tahoma', sans-serif;">
+        <thead style="background: #d4d0c8;">
+            <tr>
+                <th style="width:30px; border: 1px solid #808080;">Lp.</th>
+                <th style="text-align:left; border: 1px solid #808080; width: 180px;">Uczeń</th>
+                <th style="text-align:left; border: 1px solid #808080;">Oceny bieżące</th>
+                <th style="width: 60px; border: 1px solid #808080;">Średnia</th>
+                <th style="width: 50px; border: 1px solid #808080;">(R)</th>
+                <th style="width: 50px; border: 1px solid #808080;">R</th>
+            </tr>
+        </thead>
+        <tbody>`;
+        
+    classStudents.forEach((stu, i) => {
+        let stuGradesHtml = `<div style="display: inline-flex; border-top: 1px solid #808080; border-left: 1px solid #808080; border-bottom: 1px solid #fff; border-right: 1px solid #fff;">`;
+        let sum = 0; let weightSum = 0;
+        let hasGrades = false;
+
+        subjectGrades.forEach(entry => {
+            const g = entry.grades[stu.index];
+            if(g && g.grade) {
+                hasGrades = true;
+                const bgColor = entry.info.color || '#d4d0c8';
+                
+                // Obliczanie średniej
+                if (entry.info.avg !== false) {
+                    let val = parseGradeValueForAvg(g.grade);
+                    let w = parseFloat(entry.info.weight) || 1;
+                    if (val !== null) { sum += (val * w); weightSum += w; }
+                }
+
+                stuGradesHtml += `<div data-entry-id="${entry.info.id}" data-student-index="${stu.index}"
+                    onclick="toggleAdmGradeSelection(this, '${entry.info.id}', ${stu.index})"
+                    style="background-color: ${bgColor}; padding: 2px 6px; cursor: pointer; color: #000; font-size:12px; border-right: 1px solid #808080;"
+                    title="Kategoria: ${entry.info.category}\nData: ${entry.info.date}\nWaga: ${entry.info.weight}\nKomentarz: ${g.comment || 'brak'}">
+                    ${g.grade}
+                </div>`;
+            }
+        });
+        stuGradesHtml += `</div>`;
+        
+        // Obliczenia ocen (R) i R
+        let avgStr = weightSum > 0 ? (sum / weightSum).toFixed(2) : "-";
+        
+        let pEntry = predictedDB.find(e => e.subject === subj && e.protocol === prot);
+        let predGrade = (pEntry && pEntry.grades[stu.index] && pEntry.grades[stu.index].grade) ? pEntry.grades[stu.index].grade : "-";
+        
+        let fEntry = finalDB.find(e => e.subject === subj && e.protocol === prot);
+        let finGrade = (fEntry && fEntry.grades[stu.index] && fEntry.grades[stu.index].grade) ? fEntry.grades[stu.index].grade : "-";
+
+        html += `<tr style="border-bottom: 1px solid #d4d0c8; background: #fff;">
+            <td style="text-align: center; border-right: 1px solid #d4d0c8;">${i+1}</td>
+            <td style="text-align:left; font-weight:bold; color:#000; border-right: 1px solid #d4d0c8;">${stu.name}</td>
+            <td style="text-align:left; padding: 2px 5px; border-right: 1px solid #d4d0c8;">${hasGrades ? stuGradesHtml : '<span style="color:#808080;">-</span>'}</td>
+            <td style="text-align:center; font-weight:bold; border-right: 1px solid #d4d0c8;">${avgStr}</td>
+            <td style="text-align:center; border-right: 1px solid #d4d0c8;">${predGrade}</td>
+            <td style="text-align:center; font-weight:bold;">${finGrade}</td>
+        </tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+function toggleAdmGradeSelection(el, entryId, studentIndex) {
+    const idx = admSelectedGrades.findIndex(sg => sg.entryId === entryId && sg.studentIndex === studentIndex);
+    if(idx > -1) {
+        admSelectedGrades.splice(idx, 1);
+        el.style.opacity = "1";
+        el.style.outline = "none";
+    } else {
+        admSelectedGrades.push({entryId, studentIndex});
+        el.style.opacity = "0.7";
+        el.style.outline = "2px solid #000080";
+        el.style.outlineOffset = "-2px";
+    }
+    updateAdmEditButton();
+}
+
+function updateAdmEditButton() {
+    const btn = document.getElementById('adm-btn-edit-selected');
+    if(btn) {
+        btn.innerText = `Edytuj zaznaczone (${admSelectedGrades.length})`;
+        btn.disabled = admSelectedGrades.length === 0;
+    }
+}
+
+function loadCategoriesToSelect(selectId) {
+    const sel = document.getElementById(selectId);
+    if(sel && typeof getAllCategories === 'function') {
+        sel.innerHTML = getAllCategories().map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    }
+}
+
+function applyGlobalSettingsToRows() {
+    const cat = document.getElementById('adm-global-category').value;
+    const weight = document.getElementById('adm-global-weight').value;
+    const avg = document.getElementById('adm-global-avg').checked;
+    const date = document.getElementById('adm-global-date').value;
+    const teacher = document.getElementById('adm-global-teacher').value;
+
+    document.querySelectorAll('.adm-row-cat').forEach(el => { if(cat) el.value = cat; });
+    document.querySelectorAll('.adm-row-weight').forEach(el => { if(weight) el.value = weight; });
+    document.querySelectorAll('.adm-row-avg').forEach(el => { el.checked = avg; });
+    document.querySelectorAll('.adm-row-date').forEach(el => { if(date) el.value = date; });
+    document.querySelectorAll('.adm-row-teacher').forEach(el => { if(teacher) el.value = teacher; });
+}
+
+function openAdmBulkAddModal() {
+    const cls = document.getElementById('adm-grade-class').value;
+    if(!cls) return alert("Wybierz klasę przed dodawaniem ocen!");
+
+    document.getElementById('adm-bulk-mode').value = 'add';
+    document.getElementById('adm-bulk-grade-title').innerText = 'Dodaj oceny seryjnie';
+    
+    loadCategoriesToSelect('adm-global-category');
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('adm-global-date').value = today;
+    document.getElementById('adm-global-teacher').value = sessionStorage.getItem('loggedInUser') || '';
+    
+    const students = typeof getStudentsByClass === 'function' ? getStudentsByClass(cls) : [];
+    const tbody = document.getElementById('adm-bulk-grade-rows');
+    let html = '';
+    
+    // Wstępne opcje kategorii dla wierszy
+    const catOptions = typeof getAllCategories === 'function' ? getAllCategories().map(c => `<option value="${c.name}">${c.name}</option>`).join('') : '';
+
+    students.forEach((stu, i) => {
+        html += `<tr data-student-index="${stu.index}" style="border-bottom: 1px solid #d4d0c8;">
+            <td style="text-align:center;">${i+1}</td>
+            <td style="text-align:left; color:#000; font-weight:bold;">${stu.name}</td>
+            <td><input type="text" class="adm-row-val" style="width:100%; text-align:center;"></td>
+            <td><select class="adm-row-cat" style="width:100%;">${catOptions}</select></td>
+            <td><input type="number" class="adm-row-weight" min="0.01" step="0.01" value="1" style="width:100%;"></td>
+            <td style="text-align:center;"><input type="checkbox" class="adm-row-avg" checked></td>
+            <td><input type="date" class="adm-row-date" value="${today}" style="width:100%;"></td>
+            <td><input type="text" class="adm-row-teacher" value="${sessionStorage.getItem('loggedInUser') || ''}" style="width:100%;"></td>
+            <td><input type="text" class="adm-row-com" style="width:100%;"></td>
+        </tr>`;
+    });
+    tbody.innerHTML = html;
+    document.getElementById('adm-bulk-grade-modal').style.display = 'flex';
+}
+
+function openAdmBulkEditModal() {
+    if(admSelectedGrades.length === 0) return;
+    
+    document.getElementById('adm-bulk-mode').value = 'edit';
+    document.getElementById('adm-bulk-grade-title').innerText = 'Edytuj zaznaczone oceny';
+    loadCategoriesToSelect('adm-global-category');
+    
+    const gradesDB = JSON.parse(localStorage.getItem("gradesDB") || "[]");
+    const tbody = document.getElementById('adm-bulk-grade-rows');
+    const catOptions = typeof getAllCategories === 'function' ? getAllCategories().map(c => `<option value="${c.name}">${c.name}</option>`).join('') : '';
+    let html = '';
+    
+    admSelectedGrades.forEach((sel, i) => {
+        const entry = gradesDB.find(e => e.info.id === sel.entryId);
+        if(entry) {
+            const stuName = typeof names !== 'undefined' ? names[sel.studentIndex] : "Uczeń";
+            const g = entry.grades[sel.studentIndex] || {};
+            
+            // Ustawiamy wybraną opcję w <select> bezpośrednio w HTML
+            let rowCatOptions = catOptions.replace(`value="${entry.info.category}"`, `value="${entry.info.category}" selected`);
+
+            html += `<tr data-student-index="${sel.studentIndex}" data-entry-id="${sel.entryId}" style="border-bottom: 1px solid #d4d0c8;">
+                <td style="text-align:center;">${i+1}</td>
+                <td style="text-align:left; color:#000; font-weight:bold;">${stuName}</td>
+                <td><input type="text" class="adm-row-val" value="${g.grade || ''}" style="width:100%; text-align:center;"></td>
+                <td><select class="adm-row-cat" style="width:100%;">${rowCatOptions}</select></td>
+                <td><input type="number" class="adm-row-weight" min="0.01" step="0.01" value="${entry.info.weight || 1}" style="width:100%;"></td>
+                <td style="text-align:center;"><input type="checkbox" class="adm-row-avg" ${entry.info.avg !== false ? 'checked' : ''}></td>
+                <td><input type="date" class="adm-row-date" value="${entry.info.date || ''}" style="width:100%;"></td>
+                <td><input type="text" class="adm-row-teacher" value="${entry.info.teacher || ''}" style="width:100%;"></td>
+                <td><input type="text" class="adm-row-com" value="${g.comment || ''}" style="width:100%;"></td>
+            </tr>`;
+        }
+    });
+    tbody.innerHTML = html;
+    document.getElementById('adm-bulk-grade-modal').style.display = 'flex';
+}
+
+function closeAdmBulkGradeModal() {
+    document.getElementById('adm-bulk-grade-modal').style.display = 'none';
+}
+
+function saveAdmBulkGrades() {
+    const mode = document.getElementById('adm-bulk-mode').value;
+    const protocol = document.getElementById('adm-grade-protocol').value;
+    const subject = document.getElementById('adm-grade-subject').value;
+    const globalCats = typeof getAllCategories === 'function' ? getAllCategories() : [];
+    
+    let db = JSON.parse(localStorage.getItem("gradesDB") || "[]");
+    const rows = document.querySelectorAll('#adm-bulk-grade-rows tr');
+
+    rows.forEach(tr => {
+        const sIdx = parseInt(tr.getAttribute('data-student-index'));
+        const val = tr.querySelector('.adm-row-val').value.trim();
+        const catName = tr.querySelector('.adm-row-cat').value;
+        const weight = parseFloat(tr.querySelector('.adm-row-weight').value) || 1;
+        const avg = tr.querySelector('.adm-row-avg').checked;
+        const date = tr.querySelector('.adm-row-date').value;
+        const teacher = tr.querySelector('.adm-row-teacher').value;
+        const com = tr.querySelector('.adm-row-com').value.trim();
+        
+        const catObj = globalCats.find(c => c.name === catName) || { color: "#d4d0c8" };
+
+        let infoObj = {
+            protocol: protocol, subject: subject, category: catName,
+            weight: weight, avg: avg, date: date, teacher: teacher,
+            color: catObj.color, instructor: sessionStorage.getItem('loggedInUser') || "Admin"
+        };
+
+        if (mode === 'add') {
+            if(val) { // Tworzymy niezależne wpisy dla każdego wiersza, by móc je swobodnie modyfikować seryjnie
+                infoObj.id = 'adm_sng_' + Date.now() + Math.random().toString(36).substring(7);
+                let newGradesArray = typeof names !== 'undefined' ? names.map(nm => ({ name: nm, grade: "", comment: "" })) : [];
+                newGradesArray[sIdx] = { name: newGradesArray[sIdx]?.name || "", grade: val, comment: com };
+                db.push({ info: infoObj, grades: newGradesArray });
+            }
+        } 
+        else if (mode === 'edit') {
+            const entryId = tr.getAttribute('data-entry-id');
+            const entryIndex = db.findIndex(e => e.info.id === entryId);
+            
+            if(entryIndex > -1) {
+                const originalEntry = db[entryIndex];
+                const activeGradesCount = originalEntry.grades.filter(g => g && g.grade !== "").length;
+                
+                if (val === "") {
+                    // Usunięcie oceny
+                    originalEntry.grades[sIdx] = { name: originalEntry.grades[sIdx]?.name || "", grade: "", comment: "" };
+                    if (originalEntry.grades.filter(g => g && g.grade !== "").length === 0) db.splice(entryIndex, 1);
+                } else if (activeGradesCount > 1) {
+                    // Jeśli wpis był współdzielony z innymi, wyizoluj ten jeden
+                    originalEntry.grades[sIdx] = { name: originalEntry.grades[sIdx]?.name || "", grade: "", comment: "" };
+                    let detachedGrades = typeof names !== 'undefined' ? names.map((nm, i) => (i === sIdx ? { name: nm, grade: val, comment: com } : { name: nm, grade: "", comment: "" })) : [];
+                    infoObj.id = 'adm_sng_' + Date.now() + Math.random().toString(36).substring(7);
+                    db.push({ info: infoObj, grades: detachedGrades });
+                } else {
+                    // Jeśli to jedyna ocena w tym wpisie, nadpisz dane
+                    db[entryIndex].info = { ...db[entryIndex].info, ...infoObj }; 
+                    db[entryIndex].grades[sIdx] = { name: originalEntry.grades[sIdx]?.name || "", grade: val, comment: com };
+                }
+            }
+        }
+    });
+
+    localStorage.setItem("gradesDB", JSON.stringify(db));
+    
+    // Jeżeli jesteś w głównym widoku nauczyciela, wymuś jego odświeżenie (aby edytowanie działało spójnie)
+    if(typeof renderGradesTable === 'function') renderGradesTable();
+    
+    closeAdmBulkGradeModal();
+    renderAdmGradeTable();
 }
 </script>
 </body>
