@@ -1667,6 +1667,10 @@
     cursor: help; /* Zmienia kursor na znak zapytania, sugerując tooltip */
     vertical-align: middle;
 }
+.extension-section-wrapper, 
+.cert-section-wrapper { 
+    display: none !important; 
+}
   </style>
 </head>
 <body>
@@ -2390,7 +2394,7 @@
         <h2 id="substitution-modal-title">Dodaj zastępstwo</h2>
         <form id="substitution-form">
             <input type="hidden" id="sub-date">
-            
+
             <input type="hidden" id="sub-lesson-num">
             <label>Nauczyciel:
                 <select id="sub-teacher" class="modal-input"></select>
