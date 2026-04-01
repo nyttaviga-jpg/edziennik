@@ -672,56 +672,72 @@
     .cert-action-btn { background: transparent; border: 1px solid #dee2e6; color: #495057; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 11px; text-transform: uppercase; transition: all 0.2s ease; }
     .cert-action-btn:hover { background: #495057; color: #fff; border-color: #495057; }
 
-    /* Styl cyfrowego podpisu na dokumencie (ZAKTUALIZOWANY FORMAT) */
+    /* --- NOWY STYL DLA PODPISÓW ELEKTRONICZNYCH (E-PIECZĘĆ) --- */
     .digital-signature-box {
-        border: 2px solid #444; /* Ciemnoszara ramka */
-        background: #fff;
-        padding: 12px 15px;
-        border-radius: 0;
-        color: #000; /* Czarny tekst */
-        font-family: Arial, sans-serif !important; /* Wymuszony Arial */
-        font-size: 13px;
-        line-height: 1.4;
+        background: transparent;
+        padding: 10px 15px;
+        border-radius: 5px;
+        color: #000;
+        font-family: Arial, sans-serif !important;
         display: inline-block;
-        text-align: left;
-        min-width: 240px;
+        text-align: center;
+        min-width: 260px;
+        max-width: 320px;
+        border: 1px solid transparent; /* Domślnie brak ramki */
+        transition: all 0.2s ease-in-out;
     }
-    .sig-line { display: block; }
-    .sig-role { 
-        font-size: 11px; 
-        color: #000; 
-        margin-bottom: 5px; 
+    
+    /* Efekt najechania będzie działał tylko gdy element ma klasę interactive-sig */
+    .digital-signature-box.interactive-sig:hover {
+        background: #f8f9fa;
+        border-color: #0583e1;
+    }
+
+    .sig-upowaznienie {
+        font-size: 13px;
+        color: #000;
+        margin-bottom: 2px;
         display: block;
-        text-transform: none;
         font-family: Arial, sans-serif !important;
     }
+
     .sig-name { 
         font-weight: bold; 
-        font-size: 14px; 
-        text-transform: uppercase; 
-        margin-bottom: 5px; 
+        font-size: 18px; /* Powiększone jak przy "pieczątce" z kropek */
+        margin-bottom: 2px; 
         color: #000; 
         display: block;
         font-family: Arial, sans-serif !important;
-        letter-spacing: 0.5px;
+    }
+
+    .sig-role { 
+        font-size: 14px; 
+        color: #000; 
+        font-style: italic;
+        margin-bottom: 8px; 
+        display: block;
+        font-family: Arial, sans-serif !important;
     }
     
     .sig-meta { 
-        font-size: 11px; 
-        color: #333; 
+        font-size: 10px; 
+        color: #666; 
         display: block;
         font-family: Arial, sans-serif !important;
     }
     
-    .sig-marker { 
+    .sig-cert-info { 
         margin-top: 8px; 
-        font-weight: bold; 
-        font-size: 11px; 
-        color: #444; /* Ciemnoszary zamiast niebieskiego */
-        font-family: Arial, sans-serif !important; /* Arial zamiast Courier */
+        font-size: 9px; 
+        color: #888; 
+        font-family: Arial, sans-serif !important;
         display: block;
-        border-top: 1px solid #ccc;
-        padding-top: 4px;
+        line-height: 1.2;
+    }
+    
+    /* Ukrywamy podświetlanie przy drukowaniu */
+    @media print {
+        .digital-signature-box { border: none !important; background: transparent !important; }
     }
 
     /* MODAL */
@@ -1981,7 +1997,7 @@
                   </div>
                   </div>
 <div id="sec-sysmsgs-view" class="sec-view-panel retro-inner-window" style="display:none;">
-    <div class="retro-titlebar"><span>Wiadomości Systemowe</span></div>
+    <div class="retro-titlebar"><span>Wiadomości systemowe</span></div>
     <div class="retro-inner-content">
         <div id="sysmsgs-list-view">
             <div style="margin-bottom: 15px;">
@@ -7305,18 +7321,19 @@ function renderSecretariatIDs() {
                 statusBadge = `<span class="status-badge status-signed">WAŻNA</span>`;
             }
 
-            // Ważne: Przekazujemy 'card.originalIndex' zamiast 'idx', 
+            // Ważne: Przekazujemy 'card.originalIndex' zamiast 'idx',
             // by wymiany/unieważnienia uderzały we właściwy dokument w bazie!
             const btnPreview = `<button class="cert-action-btn" onclick="openIDPreview(${card.originalIndex})">Podgląd</button>`;
-            let actionButtons = '';
+            const btnCert = `<button class="cert-action-btn" onclick="generateOfficialCertificate(${card.originalIndex})" style="border-color:#0583e1; color:#0583e1; margin-left:5px;">Generuj zaświadczenie</button>`;
 
+            let actionButtons = '';
             if (card.status === 'UNIEWAŻNIONA') {
-                actionButtons = `<button class="cert-action-btn" onclick="openIDExchange(${card.originalIndex})" style="border-color:#6f42c1; color:#6f42c1; margin-left:5px;">↻ Wymiana</button>`;
+                actionButtons = `<button class="cert-action-btn" onclick="openIDExchange(${card.originalIndex})" style="border-color:#6f42c1; color:#6f42c1; margin-left:5px;">↻ Wymiana</button>` + btnCert;
             } else {
                 actionButtons = `
-                    <button class="cert-action-btn" onclick="openIDUpdate(${card.originalIndex})" style="border-color:#f39c12; color:#f39c12; margin-left:5px;">Aktualizacja</button>
-                    <button class="cert-action-btn" onclick="openIDRevoke(${card.originalIndex})" style="border-color:#c33; color:#c33; margin-left:5px;">Unieważnij</button>
-                `;
+                <button class="cert-action-btn" onclick="openIDUpdate(${card.originalIndex})" style="border-color:#f39c12; color:#f39c12; margin-left:5px;">Aktualizacja</button>
+                <button class="cert-action-btn" onclick="openIDRevoke(${card.originalIndex})" style="border-color:#c33; color:#c33; margin-left:5px;">Unieważnij</button>
+                ` + btnCert;
             }
 
             html += `
@@ -8744,10 +8761,26 @@ function prepareApplicationPreview() {
 function renderApplicationPaper(data, targetId, isSigned = false, isResponse = false) {
     const paper = document.getElementById(targetId);
     
-    // 1. NAGŁÓWEK
+    // 1. NAGŁÓWEK - Znajdź tę część i dostosuj:
     let headerHtml = '';
     
-    if (isResponse) {
+    if (data.isOfficialCert) {
+        // Nowy format dla zaświadczeń (Szkoła jako wystawca na górze)
+        headerHtml = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px;">
+                <div>
+                    <strong>Szkoła Podstawowa nr 1<br>
+                    im. Mikołaja Kopernika<br>
+                    w Mysłowicach</strong><br>
+                    ul. Wielka Skotnica 84
+                </div>
+                <div style="text-align:right;">
+                    Miejscowość: <strong>Mysłowice</strong><br>
+                    Data: <strong>${data.date}</strong>
+                </div>
+            </div>
+        `;
+    } else if (isResponse) {
         headerHtml = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:40px;">
                 <div>
@@ -8804,10 +8837,10 @@ function renderApplicationPaper(data, targetId, isSigned = false, isResponse = f
     // Uczeń nadal używa textarea, więc zachowujemy dla niego pre-wrap (przez style inline w divie lub globalnie).
     // Tutaj aplikujemy style inline zależnie od trybu.
     
-    const contentStyle = isResponse 
-        ? "text-align:justify; margin-bottom:30px; line-height: 1.6;" // HTML z WYSIWYG
-        : "text-align:justify; margin-bottom:30px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;"; // Tekst z textarea
-    
+    // ZMIEŃ LINIE USTALAJĄCĄ STYL KONTENTU NA:
+    const contentStyle = (isResponse || data.isOfficialCert) 
+        ? "text-align:justify; margin-bottom:30px; line-height: 1.6;" 
+        : "text-align:justify; margin-bottom:30px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;";
     const contentHtml = `<div style="${contentStyle}">${data.content}</div>`;
     
     // Uzasadnienie (jeśli jest i nie jest puste)
@@ -8835,53 +8868,72 @@ function renderApplicationPaper(data, targetId, isSigned = false, isResponse = f
     let signatureBlock = '';
     if (isSigned) {
         let role = isResponse ? (data.signedRole || "Dyrektor Szkoły") : "Wnioskodawca";
-        let name = isResponse ? (data.signedBy || "Dyrektor Szkoły") : data.studentName;
-        let extraText = "";
-
-        if (data.isProxy && !isResponse) {
-            role = "Pracownik Sekretariatu";
-            name = data.signedBy;
-            extraText = `<div style="font-size:13px; margin-bottom:8px; color:#777; font-style:italic;">Poświadczam podpis własnoręczny</div>`;
-        }
+        
+        // b) Odkręcenie formatu nazwiska ucznia (Nazwisko Imię -> Imię Nazwisko)
+        let rawName = isResponse ? (data.signedBy || "Dyrektor Szkoły") : data.studentName;
+        let name = (!isResponse && typeof formatNameFirstLast === 'function') ? formatNameFirstLast(rawName) : rawName;
         
         let docRef = data.sygnature || data.docNumber || "Brak sygnatury";
-
-        // Sprawdzamy, czy dokument jest generowany do okna wydruku
-        const isPrint = targetId.startsWith('print-temp-container');
-
-        // Style i zdarzenia dodajemy TYLKO jeśli to NIE jest wydruk
-        let interactiveStyle = "text-align: left;";
-        let interactiveEvents = "";
         
+        const isPrint = targetId.startsWith('print-temp-container');
+        let interactiveEvents = "";
+        let interactiveClass = "";
+        
+        // c) Na poziomie wydruku (isPrint = true) nie dodajemy klasy interaktywnej i blokujemy kliknięcia
         if (!isPrint) {
-            interactiveStyle += " cursor: pointer; transition: 0.2s;";
-            interactiveEvents = `
-                onclick="showSignatureDetails('${name}', '${role}', '${data.signDate || "---"}', '${docRef}')"
-                onmouseover="this.style.backgroundColor='#f0f8ff'; this.style.borderColor='#0583e1';" 
-                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='#333';"
+            interactiveEvents = `onclick="showSignatureDetails('${name}', '${role}', '${data.signDate || "---"}', '${docRef}')"`;
+            interactiveClass = "interactive-sig"; // Dodaje klasę reagującą na hover
+        }
+
+        let upowaznienieHtml = isResponse ? `<span class="sig-upowaznienie">Z up. Dyrektora Szkoły</span>` : "";
+        
+        // a) Różna klauzula dla pracownika (certyfikat) i dla ucznia (podpis umowny)
+        let certInfoHtml = isResponse 
+            ? `<span class="sig-cert-info">Pismo zostało opatrzone bezpiecznym podpisem elektronicznym weryfikowanym przy pomocy ważnego kwalifikowanego certyfikatu.</span>`
+            : `<span class="sig-cert-info"></span>`;
+
+        signatureBlock = `
+            <div style="display: flex; justify-content: flex-end; margin-top: 40px; margin-bottom: 20px;">
+                <div class="digital-signature-box ${interactiveClass}" style="cursor: ${isPrint ? 'default' : 'pointer'};" ${interactiveEvents}>
+                    ${upowaznienieHtml}
+                    <span class="sig-name">${name}</span>
+                    <span class="sig-role">${role}</span>
+                    <span class="sig-meta">Data: ${data.signDate || "---"}</span>
+                    ${certInfoHtml}
+                </div>
+            </div>`;
+            
+    } else {
+        // Ustalenie podpisu pod kropkami
+        let printSignLabel = isResponse ? "(czytelny podpis upoważnionego pracownika)" : 
+                             (data.isOfficialCert ? "(własnoręczny podpis pracownika)" : "(czytelny podpis wnioskodawcy / ucznia)");
+                             
+        // Generowanie pieczęci imiennej
+        let stampHtml = "";
+        if (data.isOfficialCert) {
+            // Pobieramy imię i nazwisko aktualnie zalogowanego pracownika
+            let empNameRaw = sessionStorage.getItem('loggedInUser') || "Pracownik Sekretariatu";
+            // Zmieniamy format na Imię Nazwisko
+            let empName = typeof formatNameFirstLast === 'function' ? formatNameFirstLast(empNameRaw) : empNameRaw;
+            
+            // ZWIĘKSZONY ROZMIAR CZCIONKI
+            stampHtml = `
+                <div style="margin-bottom: 8px; color: #000; font-style: normal; line-height: 1.3;">
+                    <span style="font-size: 18px; font-weight: bold;">${empName}</span><br>
+                    <span style="font-size: 14px; font-style: italic;">Starszy Referent</span>
+                </div>
             `;
         }
 
-        // Usunięto tekst "(Kliknij...)" i wprowadzono warunkową interaktywność
+        // ZŁOŻENIE BLOKU: Używamy flexboxa (justify-content: flex-end) aby zepchnąć całość do prawej,
+        // ale wewnątrz kontenera dajemy (text-align: center), żeby wyśrodkować pieczęć nad kropkami
         signatureBlock = `
-            <div style="text-align:right; margin-top:40px; margin-bottom:20px;">
-                <div style="display: inline-block; text-align: center;">
-                    ${extraText}
-                    <div class="digital-signature-box" style="${interactiveStyle}" ${interactiveEvents}>
-                        <span class="sig-role">${role}</span>
-                        <span class="sig-name">${name}</span>
-                        <span class="sig-meta">Data: ${data.signDate || "---"}</span>
-                        <span class="sig-marker">[-] Podpisano elektronicznie</span>
-                    </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 60px; margin-bottom: 40px;">
+                <div style="text-align: center; color: #aaa; font-style: italic;">
+                    ${stampHtml}
+                    <p style="color:#000; margin: 0 0 5px 0;">.........................................................................</p>
+                    <small>${printSignLabel}</small>
                 </div>
-            </div>`;
-    } else {
-        let printSignLabel = isResponse ? "(czytelny podpis upoważnionego pracownika)" : "(czytelny podpis wnioskodawcy / ucznia)";
-
-        signatureBlock = `
-            <div style="text-align:right; margin-top:60px; margin-bottom:40px; color:#aaa; font-style:italic;">
-                <p style="color:#000;">.........................................................................</p>
-                <small>${printSignLabel}</small>
             </div>`;
     }
     // SKŁADANIE CAŁOŚCI
@@ -11986,6 +12038,88 @@ function saveAdmBulkGrades() {
     
     closeAdmBulkGradeModal();
     renderAdmGradeTable();
+}
+function generateOfficialCertificate(idx) {
+    const db = getIDCardsDB();
+    const card = db[idx];
+    const studentId = card.studentIndex;
+    const studentNameRaw = names[studentId]; // "Nazwisko Imię"
+    
+    // a) Zmiana formatu na "Imię Nazwisko" za pomocą wbudowanej funkcji
+    const formattedName = typeof formatNameFirstLast === 'function' ? formatNameFirstLast(studentNameRaw) : studentNameRaw;
+    
+    const data = getFakeStudentData(studentId);
+    
+    const year = new Date().getFullYear();
+    const rand = Math.floor(Math.random() * 10000);
+    const sygnature = `ZAS/${year}/${rand}`;
+    const barcodeNum = Math.floor(100000000000 + Math.random() * 900000000000);
+    const issueDate = new Date().toLocaleDateString('pl-PL');
+    
+    // b) Dodanie numeru legitymacji do treści dokumentu
+    const content = `Zaświadcza się, że <strong>${formattedName}</strong>, urodzony/a ${data.dob}, nr PESEL: <strong>${data.pesel}</strong>, legitymujący/a się legitymacją szkolną nr <strong>${card.idNumber}</strong>, jest uczniem Szkoły Podstawowej nr 1 im. Mikołaja Kopernika w Mysłowicach w roku szkolnym ${year}/${year+1}.<br><br>Zaświadczenie wydaje się na prośbę zainteresowanego celem przedłożenia odnośnym władzom.`;
+
+    currentAppDraft = {
+        id: 'cert_off_' + Date.now(),
+        typeCode: 'ZAS',
+        title: "ZAŚWIADCZENIE O STATUSIE UCZNIA",
+        content: content,
+        reason: "",
+        studentId: studentId,
+        studentName: formattedName, // Przekazujemy sformatowane imię i nazwisko
+        pesel: data.pesel,
+        sygnature: sygnature,
+        docNumber: sygnature,
+        date: issueDate,
+        barcodeNum: barcodeNum,
+        barcodeHTML: createRandomBarcode(),
+        isOfficialCert: true
+    };
+
+    renderApplicationPaper(currentAppDraft, "app-paper-target", false, false); 
+    
+    document.querySelector("#application-preview-modal .sidebar-header").textContent = "Podgląd zaświadczenia";
+    document.querySelector("#application-preview-modal .sidebar-content").innerHTML = `
+        <p style="margin-bottom: 10px;"><strong>Status:</strong> Gotowe do wydruku.</p>
+        <p>Zaświadczenie zostało wygenerowane. Dokument ten nie podlega podpisowi elektronicznemu z tego poziomu – należy go wydrukować, przystawić pieczęć i podpisać własnoręcznie przez pracownika sekretariatu.</p>
+        <div id="app-preview-actions" style="margin-top:20px;">
+            <button onclick="printApplicationDocument()" class="cert-btn" style="background: #555; color: #fff; width:100%; margin-bottom:10px;">🖨 Drukuj dokument</button>
+            <button onclick="saveOfficialCertificateAndClose()" class="cert-btn" style="background: #28a745; width:100%; margin-bottom:10px;">💾 Zapisz do Rejestru Spraw</button>
+            <button onclick="closeAppPreviewModal()" class="cert-btn" style="background: #e9ecef; color: #333; border: 1px solid #ccc; width:100%; margin:0;">Anuluj</button>
+        </div>
+    `;
+    
+    document.querySelectorAll('.print-visible').forEach(el => el.classList.remove('print-visible'));
+    const modal = document.getElementById("application-preview-modal");
+    modal.classList.add('print-visible');
+    modal.style.display = "flex";
+}
+
+function saveOfficialCertificateAndClose() {
+    if (!currentAppDraft || !currentAppDraft.isOfficialCert) return;
+    
+    const db = getCertDB();
+    const certRecord = {
+        id: currentAppDraft.id,
+        studentId: currentAppDraft.studentId,
+        docNumber: currentAppDraft.sygnature,
+        issueDate: currentAppDraft.date,
+        validUntil: null,
+        status: 'Wydano w biurze (papier)',
+        studentName: currentAppDraft.studentName,
+        dob: getFakeStudentData(currentAppDraft.studentId).dob,
+        pesel: currentAppDraft.pesel,
+        barcodeNum: currentAppDraft.barcodeNum,
+        barcodeHTML: currentAppDraft.barcodeHTML,
+        category: "Zaświadczenie urzędowe"
+    };
+    db.push(certRecord);
+    setCertDB(db);
+    
+    alert("Zaświadczenie zostało odnotowane w Rejestrze Spraw i Zaświadczeń.");
+    closeAppPreviewModal();
+    // Odśwież widoki, jeżeli są aktywne
+    if (typeof renderSecretariatDocs === 'function') renderSecretariatDocs();
 }
 </script>
 </body>
