@@ -1687,6 +1687,65 @@
 .cert-section-wrapper { 
     display: none !important; 
 }
+/* --- STYLE WYDRUKU LISTY KLASY --- */
+    #print-class-list-container {
+        display: none;
+    }
+    
+    @media print {
+        body.printing-class-list * {
+            visibility: hidden;
+        }
+        body.printing-class-list #print-class-list-container,
+        body.printing-class-list #print-class-list-container * {
+            visibility: visible;
+        }
+        body.printing-class-list #print-class-list-container {
+            display: block;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 10mm;
+            box-sizing: border-box;
+            background: #fff;
+            color: #000;
+        }
+        
+        .print-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            margin-top: 15px;
+        }
+        .print-list-table th, .print-list-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+        }
+        .print-list-table th {
+            background-color: #f0f0f0 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            text-align: center;
+            font-weight: bold;
+        }
+        .print-list-col-empty {
+            /* Szerokość będzie teraz kontrolowana bezpośrednio przez skrypt, by była idealnie równa */
+            min-width: 20px;
+        }
+        .print-list-col-name {
+            text-align: left;
+            white-space: nowrap; /* TAA LINIJKA ZABRANIA ZAWIJANIU TEKSTU */
+            width: 1%; /* Tabela dopasuje szerokość kolumny do najdłuższego nazwiska w klasie */
+            padding-right: 15px !important;
+        }
+        .print-list-col-lp {
+            width: 30px;
+            text-align: center;
+        }
+    }
   </style>
 </head>
 <body>
@@ -1885,6 +1944,17 @@
     
     <div id="emp-tools-section" class="section">
       <h2>Narzędzia nauczyciela</h2>
+      
+      <div class="section-title" style="background: #e6f2ff; border-color: #0583e1; color: #004085;">Przydatne wydruki</div>
+      <div style="background: #fff; padding: 20px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+          <label style="font-weight: bold; margin: 0;">Wydrukuj pustą listę klasy:</label>
+          <select id="tool-print-class-select" style="width: 150px; padding: 6px;">
+              <option value="">-- Wybierz klasę --</option>
+          </select>
+          <input type="number" id="tool-print-columns" value="15" min="5" max="30" style="width: 80px; padding: 6px;" title="Liczba pustych kolumn (np. na daty/oceny)">
+          <span style="font-size: 12px; color: #666;">pustych kolumn</span>
+          <button type="button" onclick="printEmptyClassList()" style="background: #0583e1; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: auto;">🖨️ Generuj wydruk listy</button>
+      </div>
       <div class="section-title">Kategorie ocen</div>
       <form id="category-form" onsubmit="event.preventDefault(); addCategory();">
         <table>
@@ -12121,6 +12191,125 @@ function saveOfficialCertificateAndClose() {
     // Odśwież widoki, jeżeli są aktywne
     if (typeof renderSecretariatDocs === 'function') renderSecretariatDocs();
 }
+// --- NARZĘDZIA NAUCZYCIELA: WYDRUK LISTY KLASY ---
+
+// Podpinamy generowanie selecta do istniejącej funkcji ładowania klas
+const originalPopulateClassSelects = window.populateClassSelects;
+window.populateClassSelects = function() {
+    if (typeof originalPopulateClassSelects === 'function') originalPopulateClassSelects();
+    
+    // Dodajemy też zasilanie nowego selecta w Narzędziach
+    const classes = JSON.parse(localStorage.getItem("classesDB") || "[]");
+    const options = '<option value="">-- Wybierz klasę --</option>' + 
+                    classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    
+    const toolSel = document.getElementById('tool-print-class-select');
+    if(toolSel) toolSel.innerHTML = options;
+};
+
+// Funkcja generująca i uruchamiająca wydruk
+// Funkcja generująca i uruchamiająca wydruk
+function printEmptyClassList() {
+    const classSelect = document.getElementById('tool-print-class-select');
+    const className = classSelect ? classSelect.value : "";
+    const columnsCount = parseInt(document.getElementById('tool-print-columns').value) || 15;
+    
+    if (!className) {
+        alert("Wybierz klasę, którą chcesz wydrukować.");
+        return;
+    }
+    
+    const students = getStudentsByClass(className);
+    
+    if (students.length === 0) {
+        alert(`Brak uczniów przypisanych do klasy ${className}.`);
+        return;
+    }
+
+    // --- POBIERANIE DANYCH NAUCZYCIELA ---
+    let empNameRaw = sessionStorage.getItem('loggedInUser') || ".........................................";
+    let teacherName = (typeof formatNameFirstLast === 'function' && empNameRaw !== ".........................................") 
+                      ? formatNameFirstLast(empNameRaw) 
+                      : empNameRaw;
+                      
+    // --- POBIERANIE BIEŻĄCEGO PROTOKOŁU (SEMESTRU) Z PANELU ADMINA ---
+    // Zakładam, że w panelu admina zapisujesz to pod kluczem 'currentSemester' lub 'schoolYear'.
+    // Jeśli używasz innej nazwy zmiennej w localStorage, po prostu ją tu podmień:
+    let activeProtocol = localStorage.getItem('currentSemester') || localStorage.getItem('schoolYear') || "Semestr ......................, rok szkolny ......................";
+
+    // --- GENEROWANIE DATY I NUMERU WYDRUKU ---
+    const dateObj = new Date();
+    const today = dateObj.toLocaleDateString('pl-PL');
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const rand = Math.floor(Math.random() * 10000);
+    const printNumber = `WYD/${year}/${month}/${rand}`;
+    
+    const container = document.getElementById('print-class-list-container');
+    
+    // Budujemy rozbudowany nagłówek dokumentu z datą i informacją o semestrze
+    let html = `
+        <div style="text-align: right; margin-bottom: -15px; font-family: Arial, sans-serif; font-size: 11px; color: #555;">
+            Nr wydruku: <strong>${printNumber}</strong>
+        </div>
+        <div style="text-align: center; margin-bottom: 5px; font-family: Arial, sans-serif;">
+            <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">Lista uczniów uprawnionych do zaliczenia przedmiotu</h1>
+        </div>
+        <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+            Protokół obowiązujący: <strong>${activeProtocol}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; font-family: Arial, sans-serif; border-bottom: 2px solid #000; padding-bottom: 8px;">
+            <div>
+                <div style="font-size: 18px;">Klasa: <strong style="font-size: 20px;">${className}</strong></div>
+                <div style="font-size: 14px; margin-top: 8px;">Przedmiot / Cel: ........................................................................</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 14px;">Nauczyciel sporządzający: <strong>${teacherName}</strong></div>
+                <div style="font-size: 14px; margin-top: 8px;">Data wydruku: <strong>${today}</strong></div>
+            </div>
+        </div>
+        <table class="print-list-table" style="width: 100%; table-layout: auto;">
+            <thead>
+                <tr>
+                    <th class="print-list-col-lp" style="width: 30px;">Lp.</th>
+                    <th class="print-list-col-name">Imię i nazwisko ucznia</th>
+    `;
+    
+    // Rysujemy nagłówki pustych kolumn.
+    const emptyColWidth = (85 / columnsCount).toFixed(2) + "%";
+    
+    for (let i = 0; i < columnsCount; i++) {
+        html += `<th class="print-list-col-empty" style="width: ${emptyColWidth};"></th>`;
+    }
+    html += `</tr></thead><tbody>`;
+    
+    // Rysujemy wiersze dla poszczególnych uczniów
+    students.forEach((stu, index) => {
+        html += `
+            <tr>
+                <td class="print-list-col-lp" style="text-align: center;">${index + 1}</td>
+                <td class="print-list-col-name">${stu.name}</td>
+        `;
+        for (let i = 0; i < columnsCount; i++) {
+            html += `<td class="print-list-col-empty"></td>`;
+        }
+        html += `</tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    
+    container.innerHTML = html;
+    document.body.classList.add('printing-class-list');
+    
+    // Uruchomienie drukowania
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+            document.body.classList.remove('printing-class-list');
+        }, 500);
+    }, 100);
+}
 </script>
+<div id="print-class-list-container"></div>
 </body>
 </html>
