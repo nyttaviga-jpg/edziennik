@@ -1953,7 +1953,7 @@
           </select>
           <input type="number" id="tool-print-columns" value="15" min="5" max="30" style="width: 80px; padding: 6px;" title="Liczba pustych kolumn (np. na daty/oceny)">
           <span style="font-size: 12px; color: #666;">pustych kolumn</span>
-          <button type="button" onclick="printEmptyClassList()" style="background: #0583e1; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: auto;">🖨️ Generuj wydruk listy</button>
+          <button type="button" onclick="printEmptyClassList()" style="background: #0583e1; color: #fff; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: auto;">Generuj wydruk listy</button>
       </div>
       <div class="section-title">Kategorie ocen</div>
       <form id="category-form" onsubmit="event.preventDefault(); addCategory();">
@@ -6852,19 +6852,27 @@ function renderSecretariatDocs() {
         });
     }
 
-    // --- SORTOWANIE DANYCH (NOWOŚĆ) ---
-    allDocs.sort((a, b) => {
-        let valA = a[secDocsSortCol];
-        let valB = b[secDocsSortCol];
+   // --- PANCERNE SORTOWANIE DANYCH ---
+        allDocs.sort((a, b) => {
+            let valA = a[secDocsSortCol];
+            let valB = b[secDocsSortCol];
+            
+            // Wymuszamy konwersję dla WSZYSTKICH kolumn, które mogą być datami
+            if (secDocsSortCol === '_latestTimestamp' || secDocsSortCol === 'issueDate' || secDocsSortCol === 'date') {
+                // Zabezpieczenie: Jeśli wartość jakimś cudem jest już liczbą, zostawiamy ją. 
+                // W przeciwnym razie TWARDO przepuszczamy przez naszą funkcję parsującą.
+                valA = (typeof valA === 'number') ? valA : parsePLDateToTimestamp(valA);
+                valB = (typeof valB === 'number') ? valB : parsePLDateToTimestamp(valB);
+            } else {
+                // Zwykłe sortowanie alfabetyczne dla tekstów (np. nazwisko, sygnatura, status)
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+            }
 
-        if (typeof valA === 'string') valA = valA.toLowerCase();
-        if (typeof valB === 'string') valB = valB.toLowerCase();
-
-        if (valA < valB) return secDocsSortAsc ? -1 : 1;
-        if (valA > valB) return secDocsSortAsc ? 1 : -1;
-        return 0;
-    });
-
+            if (valA < valB) return secDocsSortAsc ? -1 : 1;
+            if (valA > valB) return secDocsSortAsc ? 1 : -1;
+            return 0;
+        });
     // 3. Renderowanie widoku
     const tbody = document.getElementById('secretariat-docs-list');
     if (!tbody) return;
@@ -7362,9 +7370,15 @@ function renderSecretariatIDs() {
     enrichedData.sort((a, b) => {
         let valA = a[secIdsSortCol];
         let valB = b[secIdsSortCol];
-
-        if (typeof valA === 'string') valA = valA.toLowerCase();
-        if (typeof valB === 'string') valB = valB.toLowerCase();
+        
+        // ZMIANA: Jeśli sortujemy po dacie ważności, zamieniamy stringa na timestamp
+        if (secIdsSortCol === 'validUntil') {
+            valA = parsePLDateToTimestamp(valA);
+            valB = parsePLDateToTimestamp(valB);
+        } else {
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+        }
 
         if (valA < valB) return secIdsSortAsc ? -1 : 1;
         if (valA > valB) return secIdsSortAsc ? 1 : -1;
@@ -10433,16 +10447,31 @@ function verifyApplication(caseId) {
 // --- FUNKCJE POMOCNICZE DO SORTOWANIA DAT ---
 function parsePLDateToTimestamp(dateStr) {
     if (!dateStr) return 0;
-    // Dzieli format "DD.MM.YYYY, HH:MM:SS" lub "DD.MM.YYYY"
-    let parts = dateStr.split(', ');
+    
+    // Normalizacja - zamieniamy ewentualne przecinki na spacje i usuwamy wielokrotne spacje
+    let normalized = dateStr.replace(',', ' ').replace(/\s+/g, ' ').trim();
+    let parts = normalized.split(' ');
+    
     let dPart = parts[0];
     let tPart = parts[1] || "00:00:00";
-
+    
+    // Sprawdzenie polskiego formatu DD.MM.YYYY
     let dSplit = dPart.split('.');
     if (dSplit.length === 3) {
-        let day = dSplit[0], month = dSplit[1], year = dSplit[2];
+        // Dodajemy zera wiodące (np. '1' -> '01')
+        let day = dSplit[0].padStart(2, '0');
+        let month = dSplit[1].padStart(2, '0');
+        let year = dSplit[2];
         return new Date(`${year}-${month}-${day}T${tPart}`).getTime();
     }
+    
+    // Sprawdzenie formatu systemowego YYYY-MM-DD
+    let dashSplit = dPart.split('-');
+    if (dashSplit.length === 3) {
+        return new Date(`${dPart}T${tPart}`).getTime();
+    }
+    
+    // Fallback dla innych dziwnych formatów
     return new Date(dateStr).getTime() || 0;
 }
 
@@ -12235,7 +12264,8 @@ function printEmptyClassList() {
     // --- POBIERANIE BIEŻĄCEGO PROTOKOŁU (SEMESTRU) Z PANELU ADMINA ---
     // Zakładam, że w panelu admina zapisujesz to pod kluczem 'currentSemester' lub 'schoolYear'.
     // Jeśli używasz innej nazwy zmiennej w localStorage, po prostu ją tu podmień:
-    let activeProtocol = localStorage.getItem('currentSemester') || localStorage.getItem('schoolYear') || "Semestr ......................, rok szkolny ......................";
+    // --- POBIERANIE BIEŻĄCEGO PROTOKOŁU (SEMESTRU) Z PANELU ADMINA ---
+    let activeProtocol = getCurrentProtocol();
 
     // --- GENEROWANIE DATY I NUMERU WYDRUKU ---
     const dateObj = new Date();
@@ -12249,16 +12279,13 @@ function printEmptyClassList() {
     
     // Budujemy rozbudowany nagłówek dokumentu z datą i informacją o semestrze
     let html = `
-        <div style="text-align: right; margin-bottom: -15px; font-family: Arial, sans-serif; font-size: 11px; color: #555;">
-            Nr wydruku: <strong>${printNumber}</strong>
-        </div>
         <div style="text-align: center; margin-bottom: 5px; font-family: Arial, sans-serif;">
             <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">Lista uczniów uprawnionych do zaliczenia przedmiotu</h1>
         </div>
         <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 14px; color: #333;">
             Protokół obowiązujący: <strong>${activeProtocol}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; font-family: Arial, sans-serif; border-bottom: 2px solid #000; padding-bottom: 8px;">
+        <div style="display: flex; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; font-family: Arial, sans-serif; border-bottom: 2px solid #000; padding-bottom: 8px;">
             <div>
                 <div style="font-size: 18px;">Klasa: <strong style="font-size: 20px;">${className}</strong></div>
                 <div style="font-size: 14px; margin-top: 8px;">Przedmiot / Cel: ........................................................................</div>
